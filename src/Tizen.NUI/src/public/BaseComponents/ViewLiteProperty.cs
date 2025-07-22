@@ -22,10 +22,11 @@ namespace Tizen.NUI.BaseComponents
         /// NOTE This can replace SetBackgroundColor(NUI.Color) after sufficient verification
         internal void SetBackgroundColor(UIColor color)
         {
-            themeData?.selectorData?.ClearBackground(this);
+            GetThemeData()?.selectorData?.ClearBackground(this);
 
             // Background property will be Color after now. Remove background image url information.
             backgroundImageUrl = null;
+
 
             if (backgroundExtraData == null)
             {
@@ -36,9 +37,11 @@ namespace Tizen.NUI.BaseComponents
                 using var map = new PropertyMap()
                     .Append(Visual.Property.Type, (int)Visual.Type.Color)
                     .Append(ColorVisualProperty.MixColor, color)
-                    .Append(Visual.Property.BorderlineWidth, backgroundExtraData.BorderlineWidth)
-                    .Append(Visual.Property.BorderlineColor, backgroundExtraData.BorderlineColor ?? Color.Black)
-                    .Append(Visual.Property.BorderlineOffset, backgroundExtraData.BorderlineOffset);
+                    .Append(Visual.Property.CornerRadius, backgroundExtraData.CornerRadius)
+                    .Append(Visual.Property.CornerSquareness, backgroundExtraData.CornerSquareness)
+                    .Append(Visual.Property.CornerRadiusPolicy, (int)backgroundExtraData.CornerRadiusPolicy);
+
+                backgroundExtraDataUpdatedFlag &= ~BackgroundExtraDataUpdatedFlag.Background;
 
                 Object.InternalSetPropertyMap(SwigCPtr, Property.BACKGROUND, map.SwigCPtr);
             }
@@ -50,7 +53,9 @@ namespace Tizen.NUI.BaseComponents
         /// NOTE This can replace SetInternalBoxShadowProperty() after sufficient verification
         internal void SetBoxShadow(UIShadow shadow)
         {
-            themeData?.selectorData?.ClearShadow(this);
+            GetThemeData()?.selectorData?.ClearShadow(this);
+
+            backgroundExtraDataUpdatedFlag &= ~BackgroundExtraDataUpdatedFlag.Shadow;
 
             using var map = shadow.BuildMap(this);
 
@@ -60,9 +65,6 @@ namespace Tizen.NUI.BaseComponents
 
         internal UIShadow GetBoxShadow()
         {
-            // Sync as current properties
-            UpdateBackgroundExtraData();
-
             using PropertyValue shadowMapValue = Object.GetProperty((System.Runtime.InteropServices.HandleRef)SwigCPtr, Property.SHADOW);
             if (shadowMapValue != null)
             {
@@ -88,9 +90,6 @@ namespace Tizen.NUI.BaseComponents
 
         internal bool UpdateBoxShadowColor(UIColor color)
         {
-            // Sync as current properties
-            UpdateBackgroundExtraData();
-
             using PropertyValue shadowMapValue = Object.GetProperty((System.Runtime.InteropServices.HandleRef)SwigCPtr, Property.SHADOW);
             if (shadowMapValue != null)
             {

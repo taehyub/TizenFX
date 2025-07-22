@@ -35,57 +35,113 @@ namespace Tizen.NUI.BaseComponents
     {
         internal class TextLabelLayout : LayoutItem
         {
+            private float lastWidth = 0;
+            private float lastHeight = 0;
+
+            public void OnAsyncTextRendered(object sender, AsyncTextRenderedEventArgs e)
+            {
+                SetMeasuredDimensions(new LayoutLength(e.Width), new LayoutLength(e.Height));
+                RequestLayout();
+            }
+
             protected override void OnMeasure(MeasureSpecification widthMeasureSpec, MeasureSpecification heightMeasureSpec)
             {
                 // Padding will be automatically applied by DALi TextLabel.
                 float totalWidth = widthMeasureSpec.Size.AsDecimal();
                 float totalHeight = heightMeasureSpec.Size.AsDecimal();
 
-                if (widthMeasureSpec.Mode == MeasureSpecification.ModeType.Exactly)
+                if (Owner is TextLabel label && label.RenderMode == TextRenderMode.AsyncAuto)
                 {
-                    if (heightMeasureSpec.Mode != MeasureSpecification.ModeType.Exactly)
+                    label.AddAsyncTextRendered();
+                    if (label.NeedRequestAsyncRender || (lastWidth != totalWidth) || (lastHeight != totalHeight))
                     {
-                        var padding = Owner.Padding;
-                        totalHeight = Owner.GetHeightForWidth(totalWidth - (padding.Start + padding.End));
-                        heightMeasureSpec = new MeasureSpecification(new LayoutLength(totalHeight), MeasureSpecification.ModeType.Exactly);
+                        lastWidth = totalWidth;
+                        lastHeight = totalHeight;
+
+                        if (widthMeasureSpec.Mode == MeasureSpecification.ModeType.Exactly)
+                        {
+                            if (heightMeasureSpec.Mode == MeasureSpecification.ModeType.Exactly)
+                            {
+                                label.RequestAsyncRenderWithFixedSize(totalWidth, totalHeight);
+                            }
+                            else
+                            {
+                                if (heightMeasureSpec.Mode == MeasureSpecification.ModeType.Unspecified)
+                                {
+                                    totalHeight = float.PositiveInfinity;
+                                }
+                                label.RequestAsyncRenderWithFixedWidth(totalWidth, totalHeight);
+                            }
+                        }
+                        else
+                        {
+                            if (heightMeasureSpec.Mode == MeasureSpecification.ModeType.Exactly)
+                            {
+                                label.RequestAsyncRenderWithFixedHeight(totalWidth, totalHeight);
+                            }
+                            else
+                            {
+                                if (heightMeasureSpec.Mode == MeasureSpecification.ModeType.Unspecified)
+                                {
+                                    totalHeight = float.PositiveInfinity;
+                                }
+                                label.RequestAsyncRenderWithConstraint(totalWidth, totalHeight);
+                            }
+                        }
+
+                        float width = label.SizeWidth;
+                        float height = label.SizeHeight;
+                        SetMeasuredDimensions(new LayoutLength(width), new LayoutLength(height));
                     }
                 }
                 else
                 {
-                    var minWidth = Owner.GetMinimumWidth();
-                    var minHeight = Owner.GetMinimumHeight();
-                    var maxWidth = Owner.GetMaximumWidth();
-                    var maxHeight = Owner.GetMaximumHeight();
-                    var naturalSize = Owner.GetNaturalSize();
-
-                    if (heightMeasureSpec.Mode == MeasureSpecification.ModeType.Exactly)
+                    if (widthMeasureSpec.Mode == MeasureSpecification.ModeType.Exactly)
                     {
-                        // GetWidthForHeight is not implemented.
-                        float width = naturalSize != null ? naturalSize.Width : 0;
-                        // Since priority of MinimumSize is higher than MaximumSize in DALi, here follows it.
-                        totalWidth = Math.Max(Math.Min(width, maxWidth < 0 ? Int32.MaxValue : maxWidth), minWidth);
-                        widthMeasureSpec = new MeasureSpecification(new LayoutLength(totalWidth), MeasureSpecification.ModeType.Exactly);
+                        if (heightMeasureSpec.Mode != MeasureSpecification.ModeType.Exactly)
+                        {
+                            var padding = Owner.Padding;
+                            totalHeight = Owner.GetHeightForWidth(totalWidth - (padding.Start + padding.End));
+                            heightMeasureSpec = new MeasureSpecification(new LayoutLength(totalHeight), MeasureSpecification.ModeType.Exactly);
+                        }
                     }
                     else
                     {
-                        float width = naturalSize != null ? naturalSize.Width : 0;
-                        // Since priority of MinimumSize is higher than MaximumSize in DALi, here follows it.
-                        totalWidth = Math.Max(Math.Min(width, maxWidth < 0 ? Int32.MaxValue : maxWidth), minWidth);
+                        var minWidth = Owner.GetMinimumWidth();
+                        var minHeight = Owner.GetMinimumHeight();
+                        var maxWidth = Owner.GetMaximumWidth();
+                        var maxHeight = Owner.GetMaximumHeight();
+                        var naturalSize = Owner.GetNaturalSize();
 
-                        var padding = Owner.Padding;
-                        float height = Owner.GetHeightForWidth(totalWidth - (padding.Start + padding.End));
-                        totalHeight = Math.Max(Math.Min(height, maxHeight < 0 ? Int32.MaxValue : maxHeight), minHeight);
+                        if (heightMeasureSpec.Mode == MeasureSpecification.ModeType.Exactly)
+                        {
+                            // GetWidthForHeight is not implemented.
+                            float width = naturalSize != null ? naturalSize.Width : 0;
+                            // Since priority of MinimumSize is higher than MaximumSize in DALi, here follows it.
+                            totalWidth = Math.Max(Math.Min(width, maxWidth < 0 ? Int32.MaxValue : maxWidth), minWidth);
+                            widthMeasureSpec = new MeasureSpecification(new LayoutLength(totalWidth), MeasureSpecification.ModeType.Exactly);
+                        }
+                        else
+                        {
+                            float width = naturalSize != null ? naturalSize.Width : 0;
+                            // Since priority of MinimumSize is higher than MaximumSize in DALi, here follows it.
+                            totalWidth = Math.Max(Math.Min(width, maxWidth < 0 ? Int32.MaxValue : maxWidth), minWidth);
 
-                        heightMeasureSpec = new MeasureSpecification(new LayoutLength(totalHeight), MeasureSpecification.ModeType.Exactly);
-                        widthMeasureSpec = new MeasureSpecification(new LayoutLength(totalWidth), MeasureSpecification.ModeType.Exactly);
+                            var padding = Owner.Padding;
+                            float height = Owner.GetHeightForWidth(totalWidth - (padding.Start + padding.End));
+                            totalHeight = Math.Max(Math.Min(height, maxHeight < 0 ? Int32.MaxValue : maxHeight), minHeight);
+
+                            heightMeasureSpec = new MeasureSpecification(new LayoutLength(totalHeight), MeasureSpecification.ModeType.Exactly);
+                            widthMeasureSpec = new MeasureSpecification(new LayoutLength(totalWidth), MeasureSpecification.ModeType.Exactly);
+                        }
                     }
+
+                    MeasuredSize.StateType childWidthState = MeasuredSize.StateType.MeasuredSizeOK;
+                    MeasuredSize.StateType childHeightState = MeasuredSize.StateType.MeasuredSizeOK;
+
+                    SetMeasuredDimensions(ResolveSizeAndState(new LayoutLength(totalWidth), widthMeasureSpec, childWidthState),
+                                        ResolveSizeAndState(new LayoutLength(totalHeight), heightMeasureSpec, childHeightState));
                 }
-
-                MeasuredSize.StateType childWidthState = MeasuredSize.StateType.MeasuredSizeOK;
-                MeasuredSize.StateType childHeightState = MeasuredSize.StateType.MeasuredSizeOK;
-
-                SetMeasuredDimensions(ResolveSizeAndState(new LayoutLength(totalWidth), widthMeasureSpec, childWidthState),
-                                       ResolveSizeAndState(new LayoutLength(totalHeight), heightMeasureSpec, childHeightState));
             }
 
             /// <inheritdoc/>
@@ -253,6 +309,7 @@ namespace Tizen.NUI.BaseComponents
         private bool hasSystemLanguageChanged;
         private bool hasSystemFontSizeChanged;
         private bool hasSystemFontTypeChanged;
+        private bool hasAsyncTextRendered;
 
         private Color internalTextColor;
         private Color internalAnchorColor;
@@ -365,6 +422,23 @@ namespace Tizen.NUI.BaseComponents
         public void RequestAsyncRenderWithFixedWidth(float width, float heightConstraint = float.PositiveInfinity)
         {
             Interop.TextLabel.RequestAsyncRenderWithFixedWidth(SwigCPtr, width, heightConstraint);
+            if (NDalicPINVOKE.SWIGPendingException.Pending) throw NDalicPINVOKE.SWIGPendingException.Retrieve();
+        }
+
+        /// <summary>
+        /// Requests asynchronous text rendering with a fixed height.
+        /// </summary>
+        /// <param name="widthConstraint">The maximum available width of text to render.</param>
+        /// <param name="height">The height of text to render.</param>
+        /// <remarks>
+        /// Only works when AsyncAuto and AsyncManual.<br />
+        /// The width is determined by the content of the text.<br />
+        /// The maximum width will be the widthConstraint.
+        /// </remarks>
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public void RequestAsyncRenderWithFixedHeight(float widthConstraint, float height)
+        {
+            Interop.TextLabel.RequestAsyncRenderWithFixedHeight(SwigCPtr, widthConstraint, height);
             if (NDalicPINVOKE.SWIGPendingException.Pending) throw NDalicPINVOKE.SWIGPendingException.Retrieve();
         }
 
@@ -2279,6 +2353,113 @@ namespace Tizen.NUI.BaseComponents
         }
 
         /// <summary>
+        /// Renders a texture at a specified scale to prevent text rendering quality degradation when scaling up with View.Scale.
+        /// </summary>
+        /// <remarks>
+        /// RenderScale is only available in TextRenderMode.AsyncAuto and TextRenderMode.AsyncManual.<br />
+        /// It is only valid when set to 1.0 or greater.<br />
+        /// This property scales up the point size and texture size to the specified scale.<br />
+        /// For example, the results of the rendered textures below are nearly identical:<br />
+        /// FontSize: 20, RenderScale: 1.5<br />
+        /// FontSize: 20, FontSizeScale: 1.5<br />
+        /// However, the texture rendered with the specified RenderScale is downscaled to the original(1.0 scale) size and applied to the visual transform.<br />
+        /// When the texture is increased by View.Scale, its size becomes 100%, ensuring high-quality rendering.<br />
+        /// To achieve optimal text rendering results when using View.Scale, RenderScale should be set to the same value.
+        /// </remarks>
+        /// <example>
+        /// The following example demonstrates how to use the RenderScale.
+        /// <code>
+        /// label.FocusGained += (s, e) =>
+        /// {
+        ///     float scaleUp = 1.5f;
+        ///     label.RenderScale = scaleUp;
+        ///     scaleAnimation = new Animation(200);
+        ///     scaleAnimation.AnimateTo(label, "scale", new Vector3(scaleUp, scaleUp, 1.0f));
+        ///     scaleAnimation.Play();
+        /// };
+        /// label.FocusLost += (s, e) =>
+        /// {
+        ///     float normalScale = 1.0f;
+        ///     label.RenderScale = normalScale;
+        ///     scaleAnimation = new Animation(200);
+        ///     scaleAnimation.AnimateTo(label, "scale", new Vector3(normalScale, normalScale, 1.0f));
+        ///     scaleAnimation.Play();
+        /// };
+        /// </code>
+        /// </example>
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public float RenderScale
+        {
+            get
+            {
+                return (float)Object.InternalGetPropertyFloat(this.SwigCPtr, Property.RenderScale);
+            }
+            set
+            {
+                Object.InternalSetPropertyFloat(this.SwigCPtr, Property.RenderScale, (float)value);
+                NotifyPropertyChanged();
+            }
+        }
+
+        /// <summary>
+        /// A factor of pixel snap.
+        /// </summary>
+        /// <remarks>
+        /// It should be 0.0 ~ 1.0.<br />
+        /// Controls the degree of pixel snapping applied to the visual position.<br />
+        /// A value of 0.0 means no snapping is applied (original position is preserved), while 1.0 applies full pixel alignment.<br />
+        /// Intermediate values blend smoothly between the original and snapped positions using linear interpolation (mix) in the vertex shader.<br />
+        /// Typical usage:<br />
+        /// To ensure both smooth animations and sharp visual alignment,<br />
+        /// transition the pixelSnapFactor value gradually from 0.0 to 1.0 during or after animations.<br />
+        /// This allows the snapping to engage seamlessly without visible jitter or popping, maintaining both visual quality and motion fluidity.<br />
+        /// Use 0.0 during animation to avoid snapping artifacts.<br />
+        /// Gradually increase to 1.0 as the animation settles, for crisp pixel alignment.
+        /// </remarks>
+        /// <example>
+        /// The following example demonstrates how to use the PixelSnapFactor with RenderScale.
+        /// <code>
+        /// label.FocusGained += (s, e) =>
+        /// {
+        ///     float scaleUp = 1.5f;
+        ///     label.RenderScale = scaleUp;
+        ///     scaleAnimation = new Animation(200);
+        ///     scaleAnimation.AnimateTo(label, "scale", new Vector3(scaleUp, scaleUp, 1.0f));
+        ///     scaleAnimation.Play();
+        ///
+        ///     pixelSnapAnimation = new Animation(200);
+        ///     pixelSnapAnimation.AnimateTo(label, "pixelSnapFactor", 1.0f);
+        ///     pixelSnapAnimation.Play();
+        /// };
+        /// label.FocusLost += (s, e) =>
+        /// {
+        ///     float normalScale = 1.0f;
+        ///     label.RenderScale = normalScale;
+        ///     scaleAnimation = new Animation(200);
+        ///     scaleAnimation.AnimateTo(label, "scale", new Vector3(normalScale, normalScale, 1.0f));
+        ///     scaleAnimation.Play();
+        ///
+        ///     pixelSnapAnimation = new Animation(200);
+        ///     pixelSnapAnimation.AnimateTo(label, "pixelSnapFactor", 0.0f);
+        ///     pixelSnapAnimation.Play();
+        /// };
+        /// </code>
+        /// </example>
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public float PixelSnapFactor
+        {
+            get
+            {
+                return (float)Object.InternalGetPropertyFloat(this.SwigCPtr, Property.PixelSnapFactor);
+            }
+            set
+            {
+                Object.InternalSetPropertyFloat(this.SwigCPtr, Property.PixelSnapFactor, (float)value);
+                NotifyPropertyChanged();
+            }
+        }
+
+        /// <summary>
         /// The AutoScrollLoopDelay property.<br />
         /// The amount of time to delay the starting time of auto scrolling and further loops.<br />
         /// </summary>
@@ -3225,6 +3406,14 @@ namespace Tizen.NUI.BaseComponents
         }
 
         /// <summary>
+        /// Whether a render request is required when render mode is AsyncManual.
+        /// </summary>
+        private bool NeedRequestAsyncRender
+        {
+            get => Object.InternalGetPropertyBool(SwigCPtr, Property.NeedRequestAsyncRender);
+        }
+
+        /// <summary>
         /// Number of lines after latest asynchronous computing or rendering of text.
         /// </summary>
         /// <example>
@@ -3241,6 +3430,28 @@ namespace Tizen.NUI.BaseComponents
         public int AsyncLineCount
         {
             get => Object.InternalGetPropertyInt(SwigCPtr, Property.AsyncLineCount);
+        }
+
+        /// <summary>
+        /// The LayoutDirectionPolicy property.
+        /// </summary>
+        /// <remarks>
+        /// Inherit : The text layout direction is inherited. If you change the layout direction, it will be aligned with the changed layout direction.<br />
+        /// Locale : The text layout direction is determined by the locale of the system language.<br />
+        /// Contents : The text layout direction is determined by the text itself.<br />
+        /// </remarks>
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public TextLayoutDirectionPolicy LayoutDirectionPolicy
+        {
+            get
+            {
+                return (TextLayoutDirectionPolicy)Object.InternalGetPropertyInt(this.SwigCPtr, TextLabel.Property.LayoutDirectionPolicy);
+            }
+            set
+            {
+                Object.InternalSetPropertyInt(this.SwigCPtr, TextLabel.Property.LayoutDirectionPolicy, (int)value);
+                NotifyPropertyChanged();
+            }
         }
 
         private TextLabelSelectorData EnsureSelectorData() => selectorData ?? (selectorData = new TextLabelSelectorData());
@@ -3320,6 +3531,24 @@ namespace Tizen.NUI.BaseComponents
             Object.InternalSetPropertyFloat(SwigCPtr, index, value);
         }
 
+        /// <summary>
+        /// Sets mask Effect to given view.
+        /// </summary>
+        /// <param name="control">The control to set mask effect.</param>
+        /// <note>
+        /// SetMaskEffect uses the TextLabel's camera to render both label and control.<br />
+        /// To apply the mask correctly, align the control's size and position with the TextLabel.<br />
+        /// </note>
+        /// <remarks>
+        /// After this operation, the Textlabel will be parent of the control.
+        /// </remarks>
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public void SetMaskEffect(View control)
+        {
+            Interop.TextLabel.SetMaskEffect(SwigCPtr, control.SwigCPtr);
+            if (NDalicPINVOKE.SWIGPendingException.Pending) throw NDalicPINVOKE.SWIGPendingException.Retrieve();
+        }
+
         /// <inheritdoc/>
         [EditorBrowsable(EditorBrowsableState.Never)]
         protected override void Dispose(DisposeTypes type)
@@ -3336,6 +3565,7 @@ namespace Tizen.NUI.BaseComponents
             RemoveSystemSettingsLocaleLanguageChanged();
             RemoveSystemSettingsFontTypeChanged();
             RemoveSystemSettingsFontSizeChanged();
+            RemoveAsyncTextRendered();
 
             if (type == DisposeTypes.Explicit)
             {
@@ -3480,6 +3710,24 @@ namespace Tizen.NUI.BaseComponents
             }
         }
 
+        private void AddAsyncTextRendered()
+        {
+            if (!hasAsyncTextRendered && Layout is TextLabelLayout layoutItem && layoutItem != null)
+            {
+                AsyncTextRendered += layoutItem.OnAsyncTextRendered;
+                hasAsyncTextRendered = true;
+            }
+        }
+
+        private void RemoveAsyncTextRendered()
+        {
+            if (hasAsyncTextRendered && Layout is TextLabelLayout layoutItem && layoutItem != null)
+            {
+                AsyncTextRendered -= layoutItem.OnAsyncTextRendered;
+                hasAsyncTextRendered = false;
+            }
+        }
+
         private void RequestLayout()
         {
             Layout?.RequestLayout();
@@ -3528,10 +3776,14 @@ namespace Tizen.NUI.BaseComponents
             internal static readonly int RemoveBackInset = Interop.TextLabel.RemoveBackInsetGet();
             internal static readonly int Cutout = Interop.TextLabel.CutoutGet();
             internal static readonly int RenderMode = Interop.TextLabel.RenderModeGet();
+            internal static readonly int LayoutDirectionPolicy = Interop.TextLabel.LayoutDirectionPolicyGet();
             internal static readonly int ManualRendered = Interop.TextLabel.ManualRenderedGet();
+            internal static readonly int NeedRequestAsyncRender = Interop.TextLabel.NeedRequestAsyncRenderGet();
             internal static readonly int AsyncLineCount = Interop.TextLabel.AsyncLineCountGet();
             internal static readonly int EllipsisMode = Interop.TextLabel.EllipsisModeGet();
             internal static readonly int IsScrolling = Interop.TextLabel.IsScrollingGet();
+            internal static readonly int RenderScale = Interop.TextLabel.RenderScaleGet();
+            internal static readonly int PixelSnapFactor = Interop.TextLabel.PixelSnapFactorGet();
 
 
             internal static void Preload()

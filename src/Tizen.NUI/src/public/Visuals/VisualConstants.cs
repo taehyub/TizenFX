@@ -724,7 +724,7 @@ namespace Tizen.NUI
         /// <since_tizen> 3 </since_tizen>
         public static readonly int EndPosition = NDalic.GradientVisualEndPosition;
         /// <summary>
-        /// The center point of a radial gradient.
+        /// The center point of a radial and conic gradient.
         /// </summary>
         /// <since_tizen> 3 </since_tizen>
         public static readonly int Center = NDalic.GradientVisualCenter;
@@ -753,6 +753,16 @@ namespace Tizen.NUI
         /// </summary>
         /// <since_tizen> 3 </since_tizen>
         public static readonly int SpreadMethod = NDalic.GradientVisualSpreadMethod;
+        /// <summary>
+        /// Sets the gradient's start position offset.
+        /// </summary>
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public static readonly int StartOffset = NDalic.GradientVisualStartOffset;
+        /// <summary>
+        /// Sets the gradient's start angle of a conic gradiant.
+        /// </summary>
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public static readonly int StartAngle = NDalic.GradientVisualStartAngle;
     }
 
     /// <summary>
@@ -1071,6 +1081,25 @@ namespace Tizen.NUI
         /// </summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
         public static readonly int FrameSpeedFactor = NDalic.ImageVisualOrientationCorrection + 19;
+
+        /// <summary>
+        /// @brief Whether to redraw the image when the visual is scaled up.
+        /// @details Name "redrawInScalingUp", type Property::BOOLEAN.
+        /// @note It is used in the AnimatedVectorImageVisual.The default is true.
+        /// </summary>
+        /// <remarks>
+        /// Inhouse API
+        /// </remarks>
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public static readonly int RedrawInScalingUp = NDalic.ImageVisualOrientationCorrection + 20;
+
+        /// <summary>
+        /// @brief Renders a texture at a given scale.
+        /// @details Name "renderScale", type Property::FLOAT.
+        /// @note It is used when scaling up AnimatedVectorImageVisual. The default is 1.0f.
+        /// </summary>
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public static readonly int RenderScale = NDalic.ImageVisualOrientationCorrection + 21;
     }
 
     /// <summary>

@@ -28,9 +28,9 @@ namespace Tizen.NUI
     [Tizen.NUI.Binding.TypeConverter(typeof(Tizen.NUI.Binding.ShadowTypeConverter))]
     public class Shadow : ShadowBase, ICloneable
     {
-        private static readonly Color noColor = new Color(0, 0, 0, 0);
+        internal static readonly Color noColor = new Color(0, 0, 0, 0);
 
-        private static readonly Color defaultColor = new Color(0, 0, 0, 0.5f);
+        internal static readonly Color defaultColor = new Color(0, 0, 0, 0.5f);
 
         /// <summary>
         /// Create a Shadow with default values.
@@ -168,7 +168,15 @@ namespace Tizen.NUI
 
         /// <inheritdoc/>
         [EditorBrowsable(EditorBrowsableState.Never)]
-        public object Clone() => new Shadow(this);
+        public object Clone()
+        {
+            return OnClone();
+        }
+
+        internal virtual object OnClone()
+        {
+            return new Shadow(this);
+        }
 
         internal override bool IsEmpty()
         {
